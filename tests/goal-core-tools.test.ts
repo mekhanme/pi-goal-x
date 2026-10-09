@@ -179,7 +179,7 @@ test("create_goal creates, focuses, and reports other open goals", async () => {
 	}
 });
 
-test("create_goal accepts token_budget and sisyphus mode", async () => {
+test("create_goal refuses an unverified finite token budget before mutation", async () => {
 	const cwd = mkdtempSync(path.join(tmpdir(), "goal-core-budget-"));
 	mkdirSync(path.join(cwd, ".pi", "goals", "archived"), { recursive: true });
 	try {
@@ -191,13 +191,8 @@ test("create_goal accepts token_budget and sisyphus mode", async () => {
 			mode: "sisyphus",
 			token_budget: 5000,
 		}, undefined, undefined, h.ctx);
-		const active = activeGoalFiles(cwd);
-		assert.equal(active.length, 1);
-		const parsed = parseGoalFile(path.join(cwd, ".pi", "goals", active[0]!));
-		assert.ok(parsed, "goal must parse");
-		assert.equal(parsed.tokenBudget, 5000, "token_budget must be persisted");
-		assert.match(JSON.stringify(result.content), /Budget: 5000 tokens/);
-		assert.equal(parsed.sisyphus, true, "sisyphus mode must be persisted");
+		assert.equal(activeGoalFiles(cwd).length, 0, "a refused budget must not create a goal");
+		assert.match(JSON.stringify(result.content), /finite token budget requires explicit user confirmation/i);
 	} finally {
 		try { rmSync(cwd, { recursive: true, force: true }); } catch {}
 	}

@@ -414,6 +414,23 @@ test("an unrequested token budget is never created: no guideline invites one, an
 	}
 });
 
+test("an explicitly requested token budget survives guided confirmation", async () => {
+	const cwd = mkdtempSync(path.join(tmpdir(), "goal-draft-budget-confirmed-"));
+	mkdirSync(path.join(cwd, ".pi", "goals", "archived"), { recursive: true });
+	try {
+		const h = createHarness(cwd, { hasUI: true });
+		await h.sessionStart();
+		await h.commands.get("goal")!.handler("Create a goal with a 5000 token budget", h.ctx);
+		const pending = runProposal(h, proposalParams("Create a bounded goal.\nSuccess criteria: tests pass.", { token_budget: 5000 }));
+		assert.ok(h.hasDialog(), "confirmation dialog must open");
+		h.dialogResult({ questions: [], answers: [{ id: "confirm", question: "Confirm Goal Draft", answer: CONFIRM_ANSWER, wasCustom: false }], cancelled: false });
+		await pending;
+		assert.equal(firstGoal(cwd).tokenBudget, 5000, "explicitly confirmed budget must persist");
+	} finally {
+		try { rmSync(cwd, { recursive: true, force: true }); } catch {}
+	}
+});
+
 // ── Sisyphus fidelity and validation ──────────────────────────────────────
 
 test("sisyphus mode mismatch and structural sufficiency are validated before confirmation", async () => {

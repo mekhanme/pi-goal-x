@@ -176,7 +176,7 @@ pi.registerTool(defineTool({
 	parameters: Type.Object({
 		objective: Type.String({ description: "Full objective; preserve ordered steps and done criteria." }),
 		mode: Type.Optional(StringEnum(["regular", "sisyphus"] as const, { description: "Default regular; sisyphus only if requested." })),
-		token_budget: Type.Optional(Type.Integer({ minimum: 1, description: "Whole-token budget, only if supplied by the user." })),
+		token_budget: Type.Optional(Type.Integer({ minimum: 1, description: "Finite budgets require guided user confirmation; this direct tool rejects them. Omit to create without a budget." })),
 	}, { additionalProperties: false }),
 	executionMode: "sequential",
 	async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
@@ -191,9 +191,8 @@ pi.registerTool(defineTool({
 			};
 		}
 		const sisyphusFlag = params.mode === "sisyphus";
-		let tokenBudget: number | undefined;
 		if (params.token_budget !== undefined) {
-			// Tool callers are untrusted: re-validate the budget beyond the schema.
+			// Preserve the existing numeric safety contract before checking consent.
 			const budgetGate = validateTokenBudgetInput(params.token_budget);
 			if (!budgetGate.ok) {
 				return {
@@ -201,7 +200,10 @@ pi.registerTool(defineTool({
 					details: goalDetails(core.state.goal),
 				};
 			}
-			tokenBudget = budgetGate.value;
+			return {
+				content: [{ type: "text", text: "A finite token budget requires explicit user confirmation through the guided goal draft; direct tool creation cannot verify consent." }],
+				details: goalDetails(core.state.goal),
+			};
 		}
 		const { objective: cleanedObjective, verificationContract } = extractVerificationContract(objective);
 		core.replaceGoal(
@@ -209,7 +211,6 @@ pi.registerTool(defineTool({
 			ctx,
 			true,
 			verificationContract,
-			tokenBudget,
 		);
 		const created = core.state.goal;
 		const otherCount = otherOpenGoalCount(core.goalsById, core.focusedGoalId);
