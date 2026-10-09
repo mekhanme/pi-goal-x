@@ -55,6 +55,10 @@ Goal state is refreshed at the request tail while the system prompt and conversa
 
 ## Changing a token budget
 
+Finite budgets require explicit interactive user confirmation in the guided goal draft. The direct `create_goal` tool now rejects every finite `token_budget` before mutation, even if the caller reports an explicit user request; omit the argument for unlimited creation. This intentionally changes the previous direct API contract. Headless direct creation does not support finite budgets.
+
+Automatic draft confirmation may retain the same effective budget but cannot add, change, or remove one. `PI_GOAL_AUTO_CONFIRM=1` cannot authorize a budget change. If the host cannot display the confirmation dialog, use a host with working select/input support or the Pi TUI; the draft remains active without applying the change.
+
 Use the existing tweak flow: `/goal-tweak remove the token budget` or `/goal-tweak set the token budget to 50000`. The proposal shows the current and proposed limits before confirmation. A budget is a total lifetime limit, not an additional allocation; consumed tokens and completed work are preserved. Omitting a budget change retains the current limit.
 
 After confirmation, a goal stopped only by its budget can continue if the revised limit allows it and scheduling permits. A still-exhausted budget keeps it stopped. Other-session ownership, interrupted execution and exhausted autonomous-run allowances still require their existing recovery steps. Creation and tweak results always show the effective budget.
