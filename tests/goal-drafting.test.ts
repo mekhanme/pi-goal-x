@@ -1457,6 +1457,28 @@ test("a tweak with no task list retains the current list and keeps its statuses"
 	}
 });
 
+test("unavailable budget confirmation does not advertise automatic recovery", async () => {
+	const cwd = mkdtempSync(path.join(tmpdir(), "goal-budget-unavailable-"));
+	const previous = process.env.PI_GOAL_AUTO_CONFIRM;
+	delete process.env.PI_GOAL_AUTO_CONFIRM;
+	try {
+		const h = createHarness(cwd, { hasUI: true });
+		await h.sessionStart();
+		await h.commands.get("goal")!.handler("Create a goal with a 5000 token budget", h.ctx);
+		h.ctx.ui.custom = (async () => undefined) as typeof h.ctx.ui.custom;
+		delete (h.ctx.ui as Partial<ExtensionContext["ui"]>).select;
+		const result = await runProposal(h, proposalParams("Create a bounded goal.", { token_budget: 5000 }));
+		assert.match(result.content[0].text, /interactive.*confirmation/i);
+		assert.doesNotMatch(result.content[0].text, /PI_GOAL_AUTO_CONFIRM=1/);
+		assert.equal(activeGoalFiles(cwd).length, 0);
+		assert.ok(h.activeTools().includes("propose_goal_draft"));
+	} finally {
+		if (previous === undefined) delete process.env.PI_GOAL_AUTO_CONFIRM;
+		else process.env.PI_GOAL_AUTO_CONFIRM = previous;
+		rmSync(cwd, { recursive: true, force: true });
+	}
+});
+
 for (const unavailable of [false, true]) {
 	test(`all drafting tools preserve the draft when dialogs are ${unavailable ? "unavailable" : "failing"}`, async () => {
 		const cwd = mkdtempSync(path.join(tmpdir(), "goal-draft-dialog-failure-"));

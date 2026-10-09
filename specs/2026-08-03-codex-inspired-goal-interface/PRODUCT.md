@@ -128,8 +128,17 @@ Parameters:
 
 - `objective: string` — required, trimmed, 1–4,000 characters;
 - `mode?: "regular" | "sisyphus"` — defaults to regular;
-- `token_budget?: number` — optional and accepted only when the user explicitly
-  supplied a budget.
+- `token_budget?: number` — retained in the schema for validation, but direct
+  creation rejects every finite budget before mutation. Omit it for unlimited
+  creation. Finite budgets require explicit interactive user confirmation in
+  the guided goal draft.
+
+Consent migration: direct finite-budget creation is intentionally incompatible
+with the previous API, including when an assistant reports an explicit user
+request. Headless direct creation cannot verify that consent. Automatic draft
+confirmation may retain the same effective budget but cannot add, change, or
+remove one. Use a host with working interactive confirmation for budget changes;
+`PI_GOAL_AUTO_CONFIRM=1` is not a budget-consent mechanism.
 
 The tool is valid only after an explicit user or system/developer request; it
 must not infer a persistent goal from an ordinary task. An explicit `/goal`

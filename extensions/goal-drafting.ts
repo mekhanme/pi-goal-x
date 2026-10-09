@@ -382,7 +382,10 @@ export function registerDraftingTools(core: GoalCore): void {
 				return { content: [{ type: "text", text: `${summary}\n\nDraft cancelled; no goal was created. Run /goal or /sisyphus to start a new draft.` }], details: goalDetails(core.state.goal) };
 			}
 			if (confirmation.unavailable) {
-				return { content: [{ type: "text", text: `${summary}\n\n${DIALOG_UNAVAILABLE_HINT} The goal was NOT created and drafting remains active; do not retry the dialog until the host supports it or the user explicitly restarts with PI_GOAL_AUTO_CONFIRM=1.` }], details: goalDetails(core.state.goal) };
+				const recoveryHint = proposedBudget !== target?.tokenBudget
+					? "This host cannot display the required goal-drafting dialogs. A token budget change requires interactive user confirmation on a host with select/input support or the pi TUI. Automatic confirmation cannot authorize this change."
+					: DIALOG_UNAVAILABLE_HINT;
+				return { content: [{ type: "text", text: `${summary}\n\n${recoveryHint} No goal change was applied and drafting remains active. Do not retry the dialog until the host supports it; automatic recovery is only available when the effective budget is unchanged.` }], details: goalDetails(core.state.goal) };
 			}
 			if (confirmation.decision !== "confirm") {
 				// Continue refining: preserve the user's auditor choice for the
