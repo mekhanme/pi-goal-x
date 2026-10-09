@@ -351,6 +351,9 @@ export function registerDraftingTools(core: GoalCore): void {
 			if (draft.mode === "sisyphus" && !sisyphusObjectiveSufficient(objective)) return { content: [{ type: "text", text: "A Sisyphus goal needs ordered steps with explicit per-step done criteria. Refine the objective with numbered steps (1) ..., 2) ...) or Step N: blocks before proposing again." }], details: goalDetails(core.state.goal) };
 			let confirmation: { decision: ProposalDecision; auditorEnabled: boolean; unavailable: boolean };
 			if (shouldAutoConfirmProposal({ hasUI: ctx.hasUI, autoConfirmEnv: process.env.PI_GOAL_AUTO_CONFIRM })) {
+				if (proposedBudget !== undefined && proposedBudget !== target?.tokenBudget) {
+					return { content: [{ type: "text", text: "A new or changed finite token budget requires interactive user confirmation; automatic confirmation cannot authorize it. Draft remains active." }], details: goalDetails(core.state.goal) };
+				}
 				confirmation = { decision: "confirm" as const, auditorEnabled: draft.auditorEnabled, unavailable: false };
 			} else {
 				core.enterGoalModal();

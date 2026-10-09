@@ -557,6 +557,57 @@ test("tweak against a changed focus is rejected without mutation", async () => {
 
 // ── Headless semantics ────────────────────────────────────────────────────
 
+test("automatic tweaks retain a confirmed budget but cannot change it", async () => {
+	const cwd = mkdtempSync(path.join(tmpdir(), "goal-draft-budget-retained-"));
+	mkdirSync(path.join(cwd, ".pi", "goals", "archived"), { recursive: true });
+	const previous = process.env.PI_GOAL_AUTO_CONFIRM;
+	delete process.env.PI_GOAL_AUTO_CONFIRM;
+	try {
+		const h = createHarness(cwd, { hasUI: true });
+		await h.sessionStart();
+		await h.commands.get("goal")!.handler("Create a goal with a 5000 token budget", h.ctx);
+		const pending = runProposal(h, proposalParams("Initial objective.", { token_budget: 5000 }));
+		h.dialogResult({ questions: [], answers: [{ id: "confirm", question: "Confirm Goal Draft", answer: CONFIRM_ANSWER, wasCustom: false }], cancelled: false });
+		await pending;
+		const original = firstGoal(cwd);
+		process.env.PI_GOAL_AUTO_CONFIRM = "1";
+		await h.commands.get("goal-tweak")!.handler("Clarify objective", h.ctx);
+		await runProposal(h, proposalParams("Clarified objective."));
+		assert.equal(firstGoal(cwd).id, original.id);
+		assert.equal(firstGoal(cwd).tokenBudget, 5000);
+		const retained = firstGoal(cwd);
+		await h.commands.get("goal-tweak")!.handler("Change budget", h.ctx);
+		const rejected = await runProposal(h, proposalParams("Unexpected objective.", { token_budget: 1000 }));
+		assert.match(rejected.content[0].text, /budget.*confirmation/i);
+		assert.deepEqual(firstGoal(cwd), retained, "rejected budget change preserves the whole goal record");
+	} finally {
+		if (previous === undefined) delete process.env.PI_GOAL_AUTO_CONFIRM;
+		else process.env.PI_GOAL_AUTO_CONFIRM = previous;
+		try { rmSync(cwd, { recursive: true, force: true }); } catch {}
+	}
+});
+
+test("automatic confirmation refuses a new finite budget before mutation", async () => {
+	for (const hasUI of [false, true]) {
+		const cwd = mkdtempSync(path.join(tmpdir(), "goal-draft-budget-auto-"));
+		mkdirSync(path.join(cwd, ".pi", "goals", "archived"), { recursive: true });
+		const previous = process.env.PI_GOAL_AUTO_CONFIRM;
+		process.env.PI_GOAL_AUTO_CONFIRM = "1";
+		try {
+			const h = createHarness(cwd, { hasUI });
+			await h.sessionStart();
+			await h.commands.get("goal")!.handler("Create a goal", h.ctx);
+			const result = await runProposal(h, proposalParams("Create a goal.", { token_budget: 1000 }));
+			assert.equal(activeGoalFiles(cwd).length, 0, "automatic confirmation is not budget consent");
+			assert.match(result.content[0].text, /budget.*confirmation/i);
+		} finally {
+			if (previous === undefined) delete process.env.PI_GOAL_AUTO_CONFIRM;
+			else process.env.PI_GOAL_AUTO_CONFIRM = previous;
+			try { rmSync(cwd, { recursive: true, force: true }); } catch {}
+		}
+	}
+});
+
 test("headless proposal auto-confirm semantics are explicit", async () => {
 	const cwd = mkdtempSync(path.join(tmpdir(), "goal-draft-headless-"));
 	mkdirSync(path.join(cwd, ".pi", "goals", "archived"), { recursive: true });
