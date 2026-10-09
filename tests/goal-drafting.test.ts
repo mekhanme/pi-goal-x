@@ -580,6 +580,9 @@ test("automatic tweaks retain a confirmed budget but cannot change it", async ()
 		const rejected = await runProposal(h, proposalParams("Unexpected objective.", { token_budget: 1000 }));
 		assert.match(rejected.content[0].text, /budget.*confirmation/i);
 		assert.deepEqual(firstGoal(cwd), retained, "rejected budget change preserves the whole goal record");
+		const removed = await runProposal(h, proposalParams("Unexpected objective.", { token_budget: null }));
+		assert.match(removed.content[0].text, /budget.*confirmation/i);
+		assert.deepEqual(firstGoal(cwd), retained, "automatic removal cannot erase confirmed budget or history");
 	} finally {
 		if (previous === undefined) delete process.env.PI_GOAL_AUTO_CONFIRM;
 		else process.env.PI_GOAL_AUTO_CONFIRM = previous;
