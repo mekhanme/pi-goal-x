@@ -31,8 +31,16 @@ passing full suite. No live runtime, agents, terminal changes, npm package
 edits or provisioning performed. No visual/runtime acceptance claimed.
 
 Publication: upstream permission reports push=false; fork creation through
-the current credential returned HTTP 403. Local source commit is not remote
-publication. Coordinator must arrange authorized source publication/review.
+GH_TOKEN returned HTTP 403. Existing keyring authorization subsequently
+created https://github.com/mekhanme/pi-goal-x and published branch
+task/pi-audit-display-20261022/panelshchik (implementation SHA
+326efef8295829c2ee4b5d40f2e078dbbb502214). No upstream merge is claimed.
+Read back the published branch with:
+
+```sh
+git ls-remote https://github.com/mekhanme/pi-goal-x.git refs/heads/task/pi-audit-display-20261022/panelshchik
+```
+
 Provisioning belongs to Razvodyashchiy only after source review. Do not point
 settings at this author worktree or replace the current consumer without GO.
 
