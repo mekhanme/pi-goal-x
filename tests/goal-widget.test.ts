@@ -139,7 +139,7 @@ test("renderAuditorWidgetLines shows the progress bar at 0% and 100%", () => {
 test("renderAuditorWidgetLines shows no percentage when undefined", () => {
 	const progress = auditorProgress({ phase: "running", label: "Working..." });
 	const lines = renderAuditorWidgetLines(progress, theme, 100);
-	assert.match(lines.join("\n"), /Working/);
+	assert.match(lines.join("\n"), /Независимая проверка/);
 	assert.doesNotMatch(lines.join("\n"), /\d+%/);
 });
 
