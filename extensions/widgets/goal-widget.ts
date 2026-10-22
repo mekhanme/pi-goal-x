@@ -283,7 +283,7 @@ function spinnerFrame(): string {
 }
 
 export interface AuditResultView {
-	verdict: "approved" | "disapproved" | "error";
+	verdict: "approved" | "disapproved" | "error" | "unknown";
 	report: string;
 }
 
@@ -297,7 +297,7 @@ export function renderAuditorWidgetLines(
 	progress: AuditorWidgetProgress,
 	theme: Theme,
 	width: number,
-	opts: { showToolDetails?: boolean; verdict?: "approved" | "disapproved" | "error" | null } = {},
+	opts: { showToolDetails?: boolean; verdict?: "approved" | "disapproved" | "error" | "unknown" | null } = {},
 ): string[] {
 	const model = deriveAuditorDashboardModel(progress, { auditorLabel: progress.auditorLabel, verdict: opts.verdict });
 	return renderAuditorDashboard(model, theme, width, { showToolDetails: opts.showToolDetails });

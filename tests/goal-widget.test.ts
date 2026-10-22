@@ -94,17 +94,17 @@ test("renderGoalWidgetLines shows other open goals and unfocused multi-goal guid
 test("renderAuditorWidgetLines shows the structured audit dashboard (§15.3)", () => {
 	const progress = auditorProgress({ auditorLabel: "anthropic/claude" });
 	const lines = renderAuditorWidgetLines(progress, theme, 100);
-	assert.match(lines[0]!, /Independent completion audit ─ anthropic\/claude/);
+	assert.match(lines[0]!, /Аудит ─ anthropic\/claude/);
 	// Five check stages in order.
 	const text = lines.join("\n");
-	assert.ok(text.indexOf("Objective and success criteria") < text.indexOf("Verification contracts"));
-	assert.ok(text.indexOf("Verification contracts") < text.indexOf("Tasks and recorded evidence"));
-	assert.ok(text.indexOf("Tasks and recorded evidence") < text.indexOf("Workspace inspection"));
-	assert.ok(text.indexOf("Workspace inspection") < text.indexOf("Final decision"));
+	assert.ok(text.indexOf("Цель и критерии успеха") < text.indexOf("Требования проверки"));
+	assert.ok(text.indexOf("Требования проверки") < text.indexOf("Задачи и подтверждения"));
+	assert.ok(text.indexOf("Задачи и подтверждения") < text.indexOf("Проверка рабочего дерева"));
+	assert.ok(text.indexOf("Проверка рабочего дерева") < text.indexOf("Итоговое решение"));
 	// Active audit footer.
-	assert.match(lines.at(-1) ?? "", /Esc: stop audit/);
+	assert.match(lines.at(-1) ?? "", /Esc: остановить аудит/);
 	// Tool + output details are hidden by default (shown only in expanded/debug).
-	assert.doesNotMatch(text, /tool read/);
+	assert.doesNotMatch(text, /Инструмент read/);
 	assert.doesNotMatch(text, /checking file exists/);
 });
 
@@ -112,7 +112,7 @@ test("renderAuditorWidgetLines shows tool and output details in expanded/debug m
 	const progress = auditorProgress();
 	const lines = renderAuditorWidgetLines(progress, theme, 100, { showToolDetails: true });
 	const text = lines.join("\n");
-	assert.match(text, /tool read/);
+	assert.match(text, /Инструмент read/);
 	assert.match(text, /test\.txt/);
 	assert.match(text, /checking file exists/);
 });
@@ -121,11 +121,11 @@ test("renderAuditorWidgetLines drives check states from percentage bands (§15.2
 	const progress = auditorProgress({ phase: "running", percentage: 72, recentOutput: [] });
 	const lines = renderAuditorWidgetLines(progress, theme, 100);
 	const text = lines.join("\n");
-	assert.match(text, /✓ Objective and success criteria/);
-	assert.match(text, /✓ Verification contracts/);
-	assert.match(text, /✓ Tasks and recorded evidence/);
-	assert.match(text, /◌ Workspace inspection/);
-	assert.match(text, /· Final decision/);
+	assert.match(text, /✓ Цель и критерии успеха/);
+	assert.match(text, /✓ Требования проверки/);
+	assert.match(text, /✓ Задачи и подтверждения/);
+	assert.match(text, /◌ Проверка рабочего дерева/);
+	assert.match(text, /· Итоговое решение/);
 	assert.match(text, /72%/);
 });
 
@@ -146,29 +146,29 @@ test("renderAuditorWidgetLines shows no percentage when undefined", () => {
 test("renderAuditorWidgetLines shows the done phase without the stop hint", () => {
 	const progress = auditorProgress({ phase: "done", currentTool: undefined, currentToolArgs: undefined, recentOutput: [] });
 	const lines = renderAuditorWidgetLines(progress, theme, 100);
-	assert.doesNotMatch(lines.join("\n"), /Esc: stop audit/);
+	assert.doesNotMatch(lines.join("\n"), /Esc: остановить аудит/);
 });
 
 test("audit progress overrides normal goal display when provided", () => {
 	const progress = auditorProgress();
 	const lines = renderGoalWidgetLines(goal(), theme, 100, { auditorProgress: progress });
-	assert.match(lines[0]!, /Independent completion audit/);
+	assert.match(lines[0]!, /Аудит/);
 	assert.doesNotMatch(lines[0]!, /pi-goal-x ─/);
 });
 
 test("finished audit shows the result card view (§15.4)", () => {
 	const approved = renderAuditResultCardView({ verdict: "approved", report: "ok" }, theme, 100);
-	assert.match(approved[0]!, /Audit result ─ APPROVED/);
+	assert.match(approved[0]!, /Аудит ─ Одобрено/);
 	const approvedText = approved.join("\n");
-	assert.match(approvedText, /✓ Objective satisfied\./);
-	assert.match(approvedText, /✓ Verification requirements satisfied\./);
-	assert.match(approvedText, /✓ Required tasks and evidence accepted\./);
+	assert.match(approvedText, /Результат.*Одобрено/);
+	assert.match(approvedText, /Состояние.*Проверка пройдена/);
+	assert.match(approvedText, /Далее.*Завершить цель/);
 
 	const rejected = renderAuditResultCardView({ verdict: "disapproved", report: "- Tests were not run after the final change.\n- Task \"docs\" has no evidence." }, theme, 100);
 	const rejectedText = rejected.join("\n");
-	assert.match(rejectedText, /Audit result ─ CHANGES REQUIRED/);
-	assert.match(rejectedText, /✗ Tests were not run after the final change\./);
-	assert.match(rejectedText, /✗ Task "docs" has no evidence\./);
+	assert.match(rejectedText, /Аудит ─ Отклонено/);
+	assert.match(rejectedText, /Состояние.*Нужны исправления/);
+	assert.match(rejectedText, /Далее.*Исправить замечания/);
 });
 
 const testProposedAt = "2026-01-01T00:00:00.000Z";
@@ -381,10 +381,10 @@ test("GoalWidgetComponent renders the audit dashboard when audit progress is pre
 
 	const lines = component.render(100);
 	const text = lines.join("\n");
-	assert.match(text, /Independent completion audit/);
-	assert.match(text, /Objective and success criteria/);
+	assert.match(text, /Аудит/);
+	assert.match(text, /Цель и критерии успеха/);
 	// Tool details are hidden unless the dashboard is expanded (debug/audit mode).
-	assert.doesNotMatch(text, /tool read/);
+	assert.doesNotMatch(text, /Инструмент read/);
 });
 
 test("GoalWidgetComponent renders with disableTasks setting", () => {
@@ -678,7 +678,7 @@ test("audit mode temporarily replaces the normal view and returns after", () => 
 		getSettings: () => ({}),
 	});
 	const during = component.render(100).join("\n");
-	assert.match(during, /Independent completion audit/);
+	assert.match(during, /Аудит/);
 	assert.doesNotMatch(during, /pi-goal-x ─/);
 	audit = null;
 	const after = component.render(100).join("\n");
@@ -1069,7 +1069,7 @@ test("GoalWidgetComponent bounds the audit dashboard, result card, debug panel, 
 		extra: { getAuditorProgress: () => auditorProgress() },
 	}).render(100);
 	assert.ok(audit.length <= Math.max(1, 8 - WIDGET_HEIGHT_RESERVE), `audit rendered ${audit.length}`);
-	assert.match(audit[0]!, /^╭─ Independent completion audit/, "audit header preserved");
+	assert.match(audit[0]!, /^╭─ Аудит/, "audit header preserved");
 
 	// Audit result card on a 6-row terminal.
 	const card = mk({
@@ -1077,7 +1077,7 @@ test("GoalWidgetComponent bounds the audit dashboard, result card, debug panel, 
 		extra: { getAuditResult: () => ({ verdict: "approved" as const, report: "Everything checks out." }) },
 	}).render(100);
 	assert.ok(card.length <= Math.max(1, 6 - WIDGET_HEIGHT_RESERVE), `card rendered ${card.length}`);
-	assert.match(card[0]!, /^╭─ Audit result/, "card header preserved");
+	assert.match(card[0]!, /^╭─ Аудит/, "card header preserved");
 
 	// Debug panel at its natural height (36) on a 36-row terminal.
 	const debug = mk({ rows: 36, extra: { getDebugMode: () => true } }).render(100);

@@ -101,10 +101,10 @@ test("percentage clamps to [0, 100]", () => {
 test("expanded diagnostics retain tool details only when requested", () => {
 	const p = progress({ currentTool: "read", currentToolArgs: '{"path":"src/parser.ts"}', recentOutput: ["checking file exists..."] });
 	const compact = renderAuditorDashboard(deriveAuditorDashboardModel(p), theme, 100).join("\n");
-	assert.doesNotMatch(compact, /tool read/);
+	assert.doesNotMatch(compact, /Инструмент read/);
 	assert.doesNotMatch(compact, /checking file exists/);
 	const expanded = renderAuditorDashboard(deriveAuditorDashboardModel(p), theme, 100, { showToolDetails: true }).join("\n");
-	assert.match(expanded, /tool read/);
+	assert.match(expanded, /Инструмент read/);
 	assert.match(expanded, /src\/parser\.ts/);
 	assert.match(expanded, /checking file exists/);
 });
@@ -134,10 +134,10 @@ test("no rendered line exceeds the terminal width at 40..140 cols", () => {
 
 test("result cards: approval, changes-required, error (§15.4)", () => {
 	const approved = deriveAuditResultCard("approved", "ok");
-	assert.equal(approved.label, "APPROVED");
-	assert.deepEqual(approved.lines, ["Objective satisfied.", "Verification requirements satisfied.", "Required tasks and evidence accepted."]);
+	assert.equal(approved.label, "Одобрено");
+	assert.deepEqual(approved.lines, ["Цель и требования проверены."]);
 	const approvedText = renderAuditResultCard(approved, theme, 100).join("\n");
-	assert.match(approvedText, /Audit result ─ APPROVED/);
+	assert.match(approvedText, /Аудит ─ Одобрено/);
 
 	const rejected = deriveAuditResultCard("disapproved", [
 		"Audit report:",
@@ -145,16 +145,16 @@ test("result cards: approval, changes-required, error (§15.4)", () => {
 		"- Task \"Update documentation\" has no completion evidence.",
 		"<disapproved/>",
 	].join("\n"));
-	assert.equal(rejected.label, "CHANGES REQUIRED");
+	assert.equal(rejected.label, "Отклонено");
 	assert.deepEqual(rejected.lines, [
 		"Tests were not run after the final implementation change.",
 		"Task \"Update documentation\" has no completion evidence.",
 	]);
 	const rejectedText = renderAuditResultCard(rejected, theme, 100).join("\n");
-	assert.match(rejectedText, /✗ Tests were not run after the final implementation change[.]/);
+	assert.match(rejectedText, /Далее.*Исправить замечания/);
 
 	const errored = deriveAuditResultCard("error", "timeout");
-	assert.equal(errored.label, "ERROR");
+	assert.equal(errored.label, "Ошибка");
 });
 
 test("the normal dashboard returns after the audit result card clears", () => {
@@ -179,11 +179,11 @@ test("the normal dashboard returns after the audit result card clears", () => {
 		getSettings: () => ({}),
 	});
 	const cardText = component.render(100).join("\n");
-	assert.match(cardText, /Audit result ─ CHANGES REQUIRED/);
-	assert.match(cardText, /✗ Tests were not run/);
+	assert.match(cardText, /Аудит ─ Отклонено/);
+	assert.match(cardText, /Далее.*Исправить замечания/);
 	// The goal stays open: clearing the card restores the normal dashboard.
 	auditResult = null;
 	const normal = component.render(100).join("\n");
 	assert.match(normal, /pi-goal-x ─ Fix the parser/);
-	assert.doesNotMatch(normal, /Audit result/);
+	assert.doesNotMatch(normal, /Аудит ─/);
 });

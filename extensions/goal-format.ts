@@ -1,5 +1,6 @@
 import { type Theme } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
+import { auditReportForDisplay, auditPresentation, auditTable, type DisplayAuditState } from "./widgets/audit-presentation.ts";
 import {
 	formatDuration,
 	formatTokenValue,
@@ -93,6 +94,10 @@ export function renderGoalResult(result: { details?: unknown; content: Array<{ t
 	const first = result.content.find((item) => item.type === "text" && typeof item.text === "string");
 	const firstText = first?.text ?? "";
 	const details = result.details as GoalStateEntry | undefined;
+	const auditPhase = asRecord(result.details)?.auditPhase;
+	if (typeof auditPhase === "string") {
+		return renderGoalAuditEvent({ content: firstText, details: { phase: auditPhase as GoalAuditEventDetails["phase"], goalId: "unknown" } }, { expanded: options?.expanded === true }, theme);
+	}
 	if (details && typeof details === "object" && "resultDetail" in details && details.resultDetail && options?.expanded) {
 		// E7: the collapsed heading stays byte-identical; the full reason is one
 		// keystroke away in the expanded tool-result detail view.
@@ -141,7 +146,7 @@ export function normalizeGoalEventDetails(value: unknown): GoalEventDetails {
 }
 
 export interface GoalAuditEventDetails {
-	phase: "started" | "approved" | "rejected" | "skipped";
+	phase: "started" | "approved" | "rejected" | "skipped" | "error" | "unknown";
 	goalId: string;
 	auditor?: string;
 }
@@ -165,15 +170,14 @@ export function renderGoalEvent(message: { details?: GoalEventDetails }, options
 	);
 }
 
-export function renderGoalAuditEvent(message: { content?: unknown; details?: GoalAuditEventDetails }, _options: { expanded: boolean }, theme: Theme): Text {
-	const phase = message.details?.phase ?? "started";
-	const label = phase === "approved" ? "approved" : phase === "rejected" ? "rejected" : phase === "skipped" ? "skipped" : "started";
-	const content = typeof message.content === "string" ? message.content : `Goal audit ${label}.`;
-	return new Text(
-		theme.fg("customMessageLabel", `Goal audit ${label}`) + "\n" + theme.fg("customMessageText", content),
-		0,
-		0,
-	);
+export function renderGoalAuditEvent(message: { content?: unknown; details?: GoalAuditEventDetails }, options: { expanded: boolean }, theme: Theme): Text {
+	const phase = message.details?.phase;
+	const state: DisplayAuditState = phase === "rejected" ? "disapproved"
+		: phase === "approved" || phase === "error" || phase === "started" || phase === "skipped" ? phase : "unknown";
+	const lines = auditTable(state);
+	const report = typeof message.content === "string" ? auditReportForDisplay(message.content) : "";
+	if (options.expanded && report) lines.push("", "Подробный отчёт", report);
+	return new Text(theme.fg(auditPresentation(state).color, "Аудит") + "\n" + theme.fg("customMessageText", lines.join("\n")), 0, 0);
 }
 
 /**

@@ -602,6 +602,7 @@ export function clampLinesToWidth(lines: string[], width: number): string[] {
 // ── AUDIT DASHBOARD (§15) ───────────────────────────────────────────────────
 
 import type { AuditorDashboardModel, AuditResultCard } from "./auditor-dashboard-model.ts";
+import { auditReportForDisplay, auditPresentation, auditTable } from "./audit-presentation.ts";
 
 const CHECK_SYMBOL = { passed: "✓", running: "◌", pending: "·", failed: "✗" } as const;
 const CHECK_COLOR = { passed: "success", running: "accent", pending: "muted", failed: "error" } as const;
@@ -622,7 +623,7 @@ export function renderAuditorDashboard(
 	const inner = safeWidth - 2;
 	const lines: string[] = [];
 	const duration = formatAuditElapsed(model.elapsedMs);
-	lines.push(boxHeader(theme, safeWidth, frame(theme, `Independent completion audit ─ ${model.auditorLabel}`), frame(theme, duration)));
+	lines.push(boxHeader(theme, safeWidth, frame(theme, `Аудит ─ ${model.auditorLabel}`), frame(theme, duration)));
 
 	for (const check of model.checks) {
 		const symbol = CHECK_SYMBOL[check.state];
@@ -640,17 +641,17 @@ export function renderAuditorDashboard(
 	if (showDiagnostics) {
 		if (model.currentTool) {
 			const args = model.currentToolArgs ? ` ${dim(theme, truncateText(model.currentToolArgs, Math.max(10, inner - 20)))}` : "";
-			lines.push(boxLine(theme, safeWidth, `${accent(theme, "tool")} ${model.currentTool}${args}`));
+			lines.push(boxLine(theme, safeWidth, `${accent(theme, "Инструмент")} ${model.currentTool}${args}`));
 		}
 		if (model.recentOutput.length > 0) {
 			lines.push(boxLine(theme, safeWidth, dim(theme, "─".repeat(Math.max(4, inner - 8)))));
-			for (const output of model.recentOutput.slice(0, 3)) {
+			for (const output of auditReportForDisplay(model.recentOutput.join("\n")).split("\n").slice(0, 3)) {
 				lines.push(boxLine(theme, safeWidth, dim(theme, truncateText(output, Math.max(8, inner - 4)))));
 			}
 		}
 	}
 
-	lines.push(boxFooter(theme, safeWidth, model.active ? "Esc: stop audit" : ""));
+	lines.push(boxFooter(theme, safeWidth, model.active ? "Esc: остановить аудит" : ""));
 	return lines;
 }
 
@@ -659,12 +660,10 @@ export function renderAuditResultCard(card: AuditResultCard, theme: Theme, width
 	const safeWidth = Math.max(10, width);
 	const inner = safeWidth - 2;
 	const lines: string[] = [];
-	const success = card.verdict === "approved";
-	const accentColor = success ? "success" : "error";
-	lines.push(boxHeader(theme, safeWidth, frame(theme, `Audit result ─ ${card.label}`)));
-	for (const line of card.lines) {
-		const symbol = success ? "✓" : "✗";
-		lines.push(boxLine(theme, safeWidth, `${theme.fg(accentColor as RenderColor, symbol)} ${fit(line, inner - 4)}`));
+	const view = auditPresentation(card.verdict);
+	lines.push(boxHeader(theme, safeWidth, theme.fg(view.color, `Аудит ─ ${view.result}`)));
+	for (const line of auditTable(card.verdict)) {
+		lines.push(boxLine(theme, safeWidth, fit(line, inner - 2)));
 	}
 	lines.push(boxFooter(theme, safeWidth, ""));
 	return lines;

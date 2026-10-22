@@ -9,6 +9,7 @@
 
 import type { AuditorProgress } from "../goal-auditor.ts";
 import { formatDashboardDuration } from "./goal-dashboard-model.ts";
+import { auditReportForDisplay, auditPresentation } from "./audit-presentation.ts";
 
 export type AuditCheckState = "pending" | "running" | "passed" | "failed";
 
@@ -21,7 +22,7 @@ export interface AuditCheck {
 	detail?: string;
 }
 
-export type AuditVerdict = "approved" | "disapproved" | "error";
+export type AuditVerdict = "approved" | "disapproved" | "error" | "unknown";
 
 export interface AuditorDashboardModel {
 	auditorLabel: string;
@@ -44,11 +45,11 @@ export interface AuditResultCard {
 }
 
 const CHECK_LABELS: Array<{ id: AuditCheckId; label: string }> = [
-	{ id: "objective", label: "Objective and success criteria" },
-	{ id: "verification", label: "Verification contracts" },
-	{ id: "tasks", label: "Tasks and recorded evidence" },
-	{ id: "workspace", label: "Workspace inspection" },
-	{ id: "decision", label: "Final decision" },
+	{ id: "objective", label: "Цель и критерии успеха" },
+	{ id: "verification", label: "Требования проверки" },
+	{ id: "tasks", label: "Задачи и подтверждения" },
+	{ id: "workspace", label: "Проверка рабочего дерева" },
+	{ id: "decision", label: "Итоговое решение" },
 ];
 
 export interface DeriveAuditorDashboardOptions {
@@ -74,19 +75,20 @@ export function deriveAuditorDashboardModel(
 	const verdict = options.verdict !== undefined ? options.verdict : null;
 
 	const checks: AuditCheck[] = CHECK_LABELS.map(({ id, label }) => {
+		if (done && (!verdict || verdict === "unknown")) return { id, label, state: "pending" };
 		if (!done) {
 			const state = checkStateActive(id, pct);
 			return { id, label, state };
 		}
 		if (id === "decision") {
-			const state: AuditCheckState = verdict === "approved" ? "passed" : verdict === "disapproved" || verdict === "error" ? "failed" : "passed";
+			const state: AuditCheckState = verdict === "approved" ? "passed" : verdict === "disapproved" || verdict === "error" ? "failed" : "pending";
 			return { id, label, state };
 		}
 		return { id, label, state: "passed" };
 	});
 
 	return {
-		auditorLabel: options.auditorLabel ?? progress.label ?? "Independent completion audit",
+		auditorLabel: options.auditorLabel ?? "Независимая проверка",
 		elapsedMs: progress.elapsedMs,
 		...(progress.percentage !== undefined ? { percentage: pct } : {}),
 		checks,
@@ -129,24 +131,26 @@ export function formatAuditElapsed(elapsedMs: number): string {
  * the leading non-marker lines, capped at three); errors state the failure.
  */
 export function deriveAuditResultCard(verdict: AuditVerdict, report: string): AuditResultCard {
+	report = auditReportForDisplay(report);
+	if (verdict === "unknown") return { verdict, label: auditPresentation(verdict).result, lines: ["Нет достоверного решения."] };
 	if (verdict === "approved") {
 		return {
 			verdict,
-			label: "APPROVED",
-			lines: ["Objective satisfied.", "Verification requirements satisfied.", "Required tasks and evidence accepted."],
+			label: "Одобрено",
+			lines: ["Цель и требования проверены."],
 		};
 	}
 	if (verdict === "error") {
 		return {
 			verdict,
-			label: "ERROR",
+			label: "Ошибка",
 			lines: [report.trim() ? oneLine(report) : "The auditor could not finish the review."],
 		};
 	}
 	const findings = extractFindings(report);
 	return {
 		verdict,
-		label: "CHANGES REQUIRED",
+		label: "Отклонено",
 		lines: findings.length > 0 ? findings : [oneLine(report) || "The auditor requested changes — review the report."],
 	};
 }

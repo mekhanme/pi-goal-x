@@ -121,7 +121,7 @@ function commitGoalCompletion(core: GoalCore, ctx: ExtensionContext, opts: {
 	return {
 		ok: true,
 		content: [{ type: "text", text: opts.trailing?.length ? [text, "", ...opts.trailing].join("\n") : text }],
-		details: goalDetails(core.state.goal),
+		details: { ...goalDetails(core.state.goal), auditPhase: opts.auditSkippedReason ? "skipped" : opts.auditorReport ? "approved" : "unknown" },
 		...(opts.terminate === false ? {} : { terminate: true }),
 	};
 }
@@ -370,7 +370,7 @@ if (settings.disabled === true) {
 		// §15.4 result card briefly so the required next work is visible before
 		// the normal dashboard returns (the goal stays open).
 		core.auditProgress = null;
-		core.setAuditResult(auditor.error ? "error" : "disapproved", auditor.output || "Auditor produced no output.");
+		core.setAuditResult(auditor.error ? "error" : auditor.disapproved ? "disapproved" : "unknown", auditor.output || "Auditor produced no output.");
 		core.goalWidgetComponentRef.current?.invalidate();
 		const rejectionText = [
 			"Goal audit rejected.",
@@ -385,11 +385,11 @@ if (settings.disabled === true) {
 			customType: GOAL_AUDIT_ENTRY,
 			content: rejectionText,
 			display: true,
-			details: { phase: "rejected", goalId: auditTarget.id, auditor: auditor.model },
+			details: { phase: auditor.error ? "error" : auditor.disapproved ? "rejected" : "unknown", goalId: auditTarget.id, auditor: auditor.model },
 		});
 		return {
 			content: [{ type: "text", text: rejectionText }],
-			details: goalDetails(core.state.goal),
+			details: { ...goalDetails(core.state.goal), auditPhase: auditor.error ? "error" : auditor.disapproved ? "rejected" : "unknown" },
 		};
 	}
 	const approvalText = [
